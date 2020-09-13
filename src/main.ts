@@ -1,4 +1,5 @@
 import { tMessage } from "../types/Query";
+import { User } from "../types/User";
 import { SubscribeUser } from './dataLayer'
 import { logger } from './logger'
 const tLogger = logger.child({ module: 'telegram' })
@@ -8,22 +9,25 @@ const TelegramBot = require('node-telegram-bot-api')
 const token = require('../../config/botToken.json')
 const bot = new TelegramBot(token.BOT_TOKEN, { polling: true })
 
-function saveId(msg: tMessage): number {
-  const chatId: number = msg.chat.id
-  return chatId
+
+function getUser(msg: tMessage): User {
+  return {
+    chatId: msg.chat.id,
+    username: msg.chat.username,
+    name: msg.chat.first_name + ' ' + msg.chat.last_name
+  }
 }
 
-
 bot.onText(/\/subscribe/, async (msg: tMessage) => {
-  const chatId = saveId(msg)
-  const response = await SubscribeUser(msg)
-  bot.sendMessage(chatId, response)
+  const user = getUser(msg)
+  const response = await SubscribeUser(user)
+  bot.sendMessage(user.chatId, response)
 })
 
 bot.onText(/\/start/, (msg: tMessage) => {
-  const chatId = saveId(msg)
-  tLogger.info(`Start from chat ${chatId}`)
-  bot.sendMessage(chatId, 'Choose action:', {
+  const user = getUser(msg)
+  tLogger.info({ msg: `Start`, chatId: user.chatId, username: user.username })
+  bot.sendMessage(user.chatId, 'Choose action:', {
     reply_markup: {
       inline_keyboard: [
         [
