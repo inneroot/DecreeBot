@@ -8,9 +8,9 @@ admin.initializeApp({
 const db = admin.firestore();
 const docRef = db.collection('users').doc('subsciber');
 
-const SubscribeUser = async (ChatId: number) => {
+const SubscribeUser = async (chatId: number) => {
   await docRef.set({
-    ChatId: ChatId
+    chatId: chatId
   }).catch((e: Error) => console.log(e.message))
 }
 
