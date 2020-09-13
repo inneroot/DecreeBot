@@ -27,13 +27,15 @@
     "build:watch": "tsc -w -p tsconfig.release.json",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "jest --coverage",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "start": "node build/src/main.js"
   },
   "author": "Jakub Synowiec <github@jakubsynowiec.info>",
   "license": "Apache-2.0",
   "dependencies": {
     "firebase-admin": "^9.1.1",
     "node-telegram-bot-api": "^0.50.0",
+    "pino": "^6.6.0",
     "tslib": "~2.0.1"
   },
   "volta": {

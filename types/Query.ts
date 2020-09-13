@@ -50,5 +50,5 @@ export interface tMessage {
   },
   date: number,
   text: string,
-  entities: [{ offset: number, length: number, type: string }]
+  entities?: [{ offset: number, length: number, type: string }]
 }
