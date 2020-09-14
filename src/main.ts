@@ -1,4 +1,4 @@
-import { tMessage } from "../types/Query";
+import { tMessage, tQuery } from "../types/Query";
 import { User } from "../types/User";
 import { SubscribeUser } from './dataLayer'
 import { logger } from './logger'
@@ -52,3 +52,30 @@ bot.onText(/\/start/, (msg: tMessage) => {
     }
   })
 })
+
+bot.on("callback_query", (query: tQuery) => {
+  const user = {
+    chatId: query.message.chat.id,
+    username: query.message.chat.username,
+    name: query.message.chat.first_name + ' ' + query.message.chat.last_name
+  }
+
+  tLogger.debug(query.data, user)
+  processQuery(query.data, user)
+})
+
+async function processQuery(req: string, user: User) {
+  switch (req) {
+    case 'fetch':
+      bot.sendMessage(user.chatId, `Updated  links`)
+      break
+    case 'db':
+      bot.sendMessage(user.chatId, `In database links`)
+      break
+    case 'latest':
+      break
+    default:
+      bot.sendMessage(user.chatId, `error. function not working yet`)
+      tLogger.error({ msg: "unhandled query: ", query: req, chatId: user.chatId, username: user.username })
+  }
+}
