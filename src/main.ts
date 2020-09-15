@@ -1,7 +1,9 @@
-import { tMessage, tQuery } from "../types/Query";
-import { User } from "../types/User";
-import { SubscribeUser } from './dataLayer'
+import { tMessage, tQuery } from "../types/Query"
+import { User } from "../types/User"
+import { SubscribeUser, addDecrees } from './dataLayer'
+import { scrapDecrees, getDecreeDetails } from './xRay'
 import { logger } from './logger'
+import { Decree } from '../types/Decree';
 const tLogger = logger.child({ module: 'telegram' })
 
 process.env.NTBA_FIX_319 = '1'
@@ -9,6 +11,7 @@ const TelegramBot = require('node-telegram-bot-api')
 const token = require('../../config/botToken.json')
 const bot = new TelegramBot(token.BOT_TOKEN, { polling: true })
 
+tLogger.info('System start')
 
 function getUser(msg: tMessage): User {
   return {
@@ -47,6 +50,10 @@ bot.onText(/\/start/, (msg: tMessage) => {
             text: 'subscribe',
             callback_data: 'subscribe'
           },
+          {
+            text: 'test',
+            callback_data: 'test'
+          },
         ]
       ]
     }
@@ -65,17 +72,35 @@ bot.on("callback_query", (query: tQuery) => {
 })
 
 async function processQuery(req: string, user: User) {
+  let answer = 'error. function not working yet'
   switch (req) {
     case 'fetch':
-      bot.sendMessage(user.chatId, `Updated  links`)
+      const decrees = await scrapDecrees(6)
+      const decreesFull = await getDetails(decrees)
+      answer = await addDecrees(decreesFull)
+      bot.sendMessage(user.chatId, answer)
       break
     case 'db':
       bot.sendMessage(user.chatId, `In database links`)
       break
     case 'latest':
       break
+    case 'subscribe':
+      answer = await SubscribeUser(user)
+      bot.sendMessage(user.chatId, answer)
+      break
+    case 'test':
+      const decr = await getDecreeDetails({ url: 'https://mepar.ru/documents/decrees/2020/06/10/121738/', title: 'test' })
+      tLogger.debug(decr)
+      bot.sendMessage(user.chatId, `Updated ${JSON.stringify(decr)}`)
+      break
     default:
-      bot.sendMessage(user.chatId, `error. function not working yet`)
+      bot.sendMessage(user.chatId, answer)
       tLogger.error({ msg: "unhandled query: ", query: req, chatId: user.chatId, username: user.username })
   }
+}
+
+async function getDetails(decrees: Array<Decree>): Promise<Array<Decree>> {
+  const newDecreesPromises = decrees.map((decree) => getDecreeDetails(decree))
+  return await Promise.all(newDecreesPromises)
 }
