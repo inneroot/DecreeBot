@@ -65,4 +65,25 @@ function getDateFromLink(url) {
   return new Date(dateArr[0], +dateArr[1] - 1, dateArr[2])
 }
 
-export { getDecreeDetails, scrapDecrees }
+const batchScraping = async (decrees: Array<Decree>): Promise<Array<Decree>> => {
+  const BATCH_SIZE = 50
+  let decreesFull = []
+  let all = []
+  for (let i = 0; i < decrees.length / BATCH_SIZE; i++) {
+    xLogger.info(`batchScraping ${i + 1}`)
+    if ((i + 1) * BATCH_SIZE < decrees.length) {
+      decreesFull = await getDetails(decrees.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE))
+    } else {
+      decreesFull = await getDetails(decrees.slice(i * BATCH_SIZE))
+    }
+    all = [...all, ...decreesFull]
+  }
+  return all
+}
+
+const getDetails = async (decrees: Array<Decree>): Promise<Array<Decree>> => {
+  const newDecreesPromises = decrees.map((decree) => getDecreeDetails(decree))
+  return await Promise.all(newDecreesPromises)
+}
+
+export { getDecreeDetails, scrapDecrees, getDetails, batchScraping }

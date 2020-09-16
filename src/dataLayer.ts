@@ -59,7 +59,7 @@ const addDecrees = async (decrees: Array<Decree>): Promise<string> => {
 }
 
 function getDecreeID(decree: Decree): string {
-  return decree?.url.slice(8).split('/').join('.')
+  return decree?.url?.slice(8).split('/').join('.')
 }
 
 async function commitBatch(decrees: Array<Decree>): Promise<void> {
@@ -67,14 +67,17 @@ async function commitBatch(decrees: Array<Decree>): Promise<void> {
     firebaseLogger.error(`Batch size ${decrees.length} is more than maximum ${MAX_BATCH_SIZE} allowed`)
     new Error(`Batch size ${decrees.length} is more than maximum ${MAX_BATCH_SIZE} allowed`)
   }
-  const batch = db.batch()
-  decrees.forEach((decree: Decree) => {
-    if (decree == undefined) return
-    const decreeRef = db.collection('decrees').doc(getDecreeID(decree))
-    batch.set(decreeRef, decree);
-  })
-  firebaseLogger.info(`Commiting batch set of ${decrees.length} decrees`)
-  await batch.commit();
+  try {
+    const batch = db.batch()
+    decrees.forEach((decree: Decree) => {
+      const decreeRef = db.collection('decrees').doc(getDecreeID(decree))
+      batch.set(decreeRef, decree);
+    })
+    firebaseLogger.info(`Commiting batch set of ${decrees.length} decrees`)
+    await batch.commit();
+  } catch (e) {
+    firebaseLogger.error(e.message)
+  }
 }
 
 export { SubscribeUser, addDecrees }

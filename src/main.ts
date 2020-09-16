@@ -1,9 +1,8 @@
 import { tMessage, tQuery } from "../types/Query"
 import { User } from "../types/User"
 import { SubscribeUser, addDecrees } from './dataLayer'
-import { scrapDecrees, getDecreeDetails } from './xRay'
+import { scrapDecrees, getDecreeDetails, batchScraping } from './xRay'
 import { logger } from './logger'
-import { Decree } from '../types/Decree';
 const tLogger = logger.child({ module: 'telegram' })
 
 process.env.NTBA_FIX_319 = '1'
@@ -75,8 +74,8 @@ async function processQuery(req: string, user: User) {
   let answer = 'error. function not working yet'
   switch (req) {
     case 'fetch':
-      const decrees = await scrapDecrees(6)
-      const decreesFull = await getDetails(decrees)
+      const decrees = await scrapDecrees(122)
+      const decreesFull = await batchScraping(decrees)
       answer = await addDecrees(decreesFull)
       bot.sendMessage(user.chatId, answer)
       break
@@ -100,7 +99,3 @@ async function processQuery(req: string, user: User) {
   }
 }
 
-async function getDetails(decrees: Array<Decree>): Promise<Array<Decree>> {
-  const newDecreesPromises = decrees.map((decree) => getDecreeDetails(decree))
-  return await Promise.all(newDecreesPromises)
-}
