@@ -1,6 +1,5 @@
 import { User } from "../types/User";
 import { Decree } from "../types/Decree"
-
 import * as admin from "firebase-admin";
 import { logger } from './logger'
 const firebaseLogger = logger.child({ module: 'firebase' })
@@ -79,5 +78,7 @@ async function commitBatch(decrees: Array<Decree>): Promise<void> {
     firebaseLogger.error(e.message)
   }
 }
+
+export const query = db.collection('decrees').orderBy('date').limit(50)
 
 export { SubscribeUser, addDecrees }

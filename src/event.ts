@@ -4,4 +4,4 @@ class MyEmitter extends EventEmitter { }
 
 const nodeEmitter = new MyEmitter();
 
-exports.nodeEmitter = nodeEmitter
+export { nodeEmitter }

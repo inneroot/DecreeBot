@@ -1,8 +1,9 @@
 import { tMessage, tQuery } from "../types/Query"
 import { User } from "../types/User"
-import { SubscribeUser, addDecrees } from './dataLayer'
+import { SubscribeUser, addDecrees, query } from './dataLayer'
 import { scrapDecrees, getDecreeDetails, batchScraping } from './xRay'
 import { logger } from './logger'
+import { nodeEmitter } from './event'
 const tLogger = logger.child({ module: 'telegram' })
 
 process.env.NTBA_FIX_319 = '1'
@@ -74,7 +75,9 @@ async function processQuery(req: string, user: User) {
   let answer = 'error. function not working yet'
   switch (req) {
     case 'fetch':
-      const decrees = await scrapDecrees(122)
+      tLogger.info('fetch query')
+      bot.sendMessage(user.chatId, 'Fetching...')
+      const decrees = await scrapDecrees()
       const decreesFull = await batchScraping(decrees)
       answer = await addDecrees(decreesFull)
       bot.sendMessage(user.chatId, answer)
@@ -83,6 +86,8 @@ async function processQuery(req: string, user: User) {
       bot.sendMessage(user.chatId, `In database links`)
       break
     case 'latest':
+      const latestDecree = query.get()
+      bot.sendMessage(user.chatId, latestDecree[0])
       break
     case 'subscribe':
       answer = await SubscribeUser(user)
@@ -99,3 +104,25 @@ async function processQuery(req: string, user: User) {
   }
 }
 
+//const unsubObserver = 
+query.onSnapshot(querySnapshot => {
+  tLogger.debug('Observer triggered')
+  querySnapshot.docChanges().forEach(change => {
+    if (change.type === 'added') {
+      nodeEmitter.emit('Added decrees', change.doc.data());
+    }
+    if (change.type === 'modified') {
+      nodeEmitter.emit('Modified decrees', change.doc.data());
+    }
+    if (change.type === 'removed') {
+      nodeEmitter.emit('Removed decrees', change.doc.data());
+    }
+  })
+}, err => {
+  tLogger.error(`Encountered error in Observer: ${err}`);
+})
+console.log(query)
+
+nodeEmitter.on('Added decrees', (data) => tLogger.debug(data))
+nodeEmitter.on('Modified decrees', (data) => tLogger.debug(data))
+nodeEmitter.on('Removed decrees', (data) => tLogger.debug(data))

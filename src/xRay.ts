@@ -36,7 +36,7 @@ const scrapDecrees = async (limit: number = 1): Promise<Array<Decree>> => {
 let counter = 0
 const getDecreeDetails = async (decree: Decree): Promise<Decree> => {
   counter++
-  if (counter % 100 == 0) { xLogger.info({ counter: counter }) }
+  if (counter % 100 == 0) { xLogger.info({ getDecreeDetails: counter }) }
   return x(decree.url,
     {
       number: '.doc-detail-retro-outer .row .text-left',
@@ -65,20 +65,17 @@ function getDateFromLink(url) {
   return new Date(dateArr[0], +dateArr[1] - 1, dateArr[2])
 }
 
+
+
 const batchScraping = async (decrees: Array<Decree>): Promise<Array<Decree>> => {
-  const BATCH_SIZE = 50
-  let decreesFull = []
-  let all = []
-  for (let i = 0; i < decrees.length / BATCH_SIZE; i++) {
-    xLogger.info(`batchScraping ${i + 1}`)
-    if ((i + 1) * BATCH_SIZE < decrees.length) {
-      decreesFull = await getDetails(decrees.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE))
-    } else {
-      decreesFull = await getDetails(decrees.slice(i * BATCH_SIZE))
-    }
-    all = [...all, ...decreesFull]
+  if (decrees.length < 100) {
+    return await getDetails(decrees)
   }
-  return all
+  let result = []
+  for (let decree of decrees) {
+    result.push(await getDecreeDetails(decree))
+  }
+  return result
 }
 
 const getDetails = async (decrees: Array<Decree>): Promise<Array<Decree>> => {
