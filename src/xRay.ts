@@ -14,7 +14,8 @@ const x = Xray({
 const requesturl = 'https://mepar.ru/documents/decrees/'
 
 
-const scrapDecrees = async (limit: number = 1): Promise<Array<Decree>> => {
+const scrapDecrees = async (limit: number = 1): Promise<Decree[]> => {
+  xLogger.info(`Scrapping ${limit} pages`)
   let arr = []
   try {
     arr = await x(requesturl, 'a.item-text', [
@@ -33,7 +34,9 @@ const scrapDecrees = async (limit: number = 1): Promise<Array<Decree>> => {
     return []
   }
 }
+
 let counter = 0
+
 const getDecreeDetails = async (decree: Decree): Promise<Decree> => {
   counter++
   if (counter % 100 == 0) { xLogger.info({ getDecreeDetails: counter }) }
@@ -67,7 +70,7 @@ function getDateFromLink(url) {
 
 
 
-const batchScraping = async (decrees: Array<Decree>): Promise<Array<Decree>> => {
+const batchScraping = async (decrees: Decree[]): Promise<Decree[]> => {
   if (decrees.length < 100) {
     return await getDetails(decrees)
   }
@@ -78,9 +81,13 @@ const batchScraping = async (decrees: Array<Decree>): Promise<Array<Decree>> => 
   return result
 }
 
-const getDetails = async (decrees: Array<Decree>): Promise<Array<Decree>> => {
+const getDetails = async (decrees: Decree[]): Promise<Decree[]> => {
   const newDecreesPromises = decrees.map((decree) => getDecreeDetails(decree))
   return await Promise.all(newDecreesPromises)
 }
 
-export { getDecreeDetails, scrapDecrees, getDetails, batchScraping }
+const scrapLatest = async (pages: number = 1): Promise<Decree[]> => {
+  return await scrapDecrees(pages)
+}
+
+export { getDecreeDetails, scrapDecrees, getDetails, batchScraping, scrapLatest }

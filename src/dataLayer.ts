@@ -13,6 +13,20 @@ admin.initializeApp({
 
 const db = admin.firestore()
 
+const getSubscribers = async (): Promise<User[]> => {
+  const users = await db.collection('users').get()
+  firebaseLogger.info(`got ${users.size} users`)
+  if (users.empty) {
+    firebaseLogger.error('No users in base')
+    return [];
+  }
+  let result = []
+  users.forEach(doc => {
+    result.push(doc.data())
+  })
+  return result
+}
+
 const SubscribeUser = async (user: User): Promise<string> => {
 
   const firebaseLogger = logger.child({ module: 'firebase', chatId: user.chatId, username: user.username })
@@ -21,21 +35,21 @@ const SubscribeUser = async (user: User): Promise<string> => {
 
   const doc = await userRef.get();
   if (doc.exists) {
-    firebaseLogger.info({ msg: `Already subscribed` })
+    firebaseLogger.trace({ msg: `Already subscribed` })
     return `@${user.username} already subscribed`
   }
   await userRef.set(user).catch((e: Error) => {
     firebaseLogger.error({ msg: `Error while subscribing user: ${e.message}` })
     return '500 : Error while subscribing'
   })
-  firebaseLogger.info({ msg: `Subscribed user` })
+  firebaseLogger.trace({ msg: `Subscribed user` })
   return `@${user.username} successfully subscribed`
 }
 
 
-const addDecrees = async (decrees: Array<Decree>): Promise<string> => {
+const addDecrees = async (decrees: Decree[]): Promise<string> => {
 
-  let arrOfArr: Array<Array<Decree>> = []
+  let arrOfArr: Array<Decree[]> = []
   for (let i = 0; i < decrees.length / MAX_BATCH_SIZE; i++) {
     if ((i + 1) * MAX_BATCH_SIZE < decrees.length) {
       arrOfArr.push(decrees.slice(i * MAX_BATCH_SIZE, (i + 1) * MAX_BATCH_SIZE))
@@ -53,15 +67,13 @@ const addDecrees = async (decrees: Array<Decree>): Promise<string> => {
     firebaseLogger.error(e.message)
     return 'Failure'
   }
-
-
 }
 
 function getDecreeID(decree: Decree): string {
   return decree?.url?.slice(8).split('/').join('.')
 }
 
-async function commitBatch(decrees: Array<Decree>): Promise<void> {
+async function commitBatch(decrees: Decree[]): Promise<void> {
   if (decrees.length > MAX_BATCH_SIZE) {
     firebaseLogger.error(`Batch size ${decrees.length} is more than maximum ${MAX_BATCH_SIZE} allowed`)
     new Error(`Batch size ${decrees.length} is more than maximum ${MAX_BATCH_SIZE} allowed`)
@@ -72,13 +84,38 @@ async function commitBatch(decrees: Array<Decree>): Promise<void> {
       const decreeRef = db.collection('decrees').doc(getDecreeID(decree))
       batch.set(decreeRef, decree);
     })
-    firebaseLogger.info(`Commiting batch set of ${decrees.length} decrees`)
+    firebaseLogger.trace(`Commiting batch set of ${decrees.length} decrees`)
     await batch.commit();
   } catch (e) {
     firebaseLogger.error(e.message)
   }
 }
+export const query = db.collection('decrees').orderBy('date', 'desc').limit(50)
 
-export const query = db.collection('decrees').orderBy('date').limit(50)
+const dbLatest = async (quantity: number = 50): Promise<Decree[]> => {
+  const snapshot = await db.collection('decrees').orderBy('date', 'desc').limit(quantity).get()
+  firebaseLogger.trace(`Got snapshot with ${snapshot.size} docs form base`)
+  if (snapshot.empty) {
+    firebaseLogger.error('No Decrees in base')
+    return [];
+  }
+  let result = []
+  snapshot.forEach(doc => {
+    const converted = converToDecrees(doc.data())
+    result.push(converted)
+  })
+  firebaseLogger.trace(`Converted ${result.length} docs to decrees`)
+  return result
+}
 
-export { SubscribeUser, addDecrees }
+function converToDecrees(docData: FirebaseFirestore.DocumentData) {
+  return {
+    url: docData.url,
+    title: docData.title,
+    date: docData.date.toDate(),
+    number: docData.number,
+    text: docData.text
+  }
+}
+
+export { SubscribeUser, addDecrees, dbLatest, getSubscribers }
