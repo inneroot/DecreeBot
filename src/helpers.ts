@@ -1,11 +1,11 @@
-import { Decree } from '../types/Decree';
+import { Decree } from '../types/Decree'
 import { User } from "../types/User"
 import { tMessage } from "../types/Query"
 import { batchScraping } from './xRay'
 import { logger } from './logger'
 const hLogger = logger.child({ module: 'helper' })
 
-async function compareDecrees(latestInDb: Decree[], latestOnSite: Decree[]) {
+async function compareDecrees(latestInDb: Decree[], latestOnSite: Decree[]): Promise<Decree[]> {
   hLogger.trace(`Comparing ${latestInDb.length} from DB with ${latestOnSite.length} from page`)
   const SetDB: Set<string> = new Set()
   const NewDecrees: Decree[] = []
@@ -26,9 +26,9 @@ function getUser(msg: tMessage): User {
 
 const formatString = (newDecrees: Decree[]): string[] => {
   if (!Array.isArray(newDecrees)) {
-    return [`error: \'newDecrees\' should be Array`]
+    return [`error: 'newDecrees' should be Array`]
   }
-  let result = []
+  const result = []
   if (newDecrees.length > 10) {
     result.push(`Указов: ${newDecrees.length} \nПоследние 10 указов:\n`)
     newDecrees = newDecrees.slice(0, 10)

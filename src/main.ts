@@ -5,7 +5,7 @@ import { scrapDecrees, batchScraping, scrapLatest } from './xRay'
 import { compareDecrees, getUser, formatString } from './helpers'
 import { logger } from './logger'
 import { Decree } from '../types/Decree'
-const cron = require('node-cron');
+const cron = require('node-cron')
 const tLogger = logger.child({ module: 'telegram' })
 
 process.env.NTBA_FIX_319 = '1'
@@ -98,19 +98,22 @@ bot.on("callback_query", (query: tQuery) => {
 async function processQuery(req: string, user: User) {
   let answer = 'error. function not working yet'
   switch (req) {
-    case 'latest':
+    case 'latest': {
       const latestInDb = await dbLatest(10)
       const messageArr = formatString(latestInDb)
       sendMessageArr(user.chatId, messageArr)
       break
-    case 'subscribe':
+    }
+    case 'subscribe': {
       answer = await SubscribeUser(user)
       bot.sendMessage(user.chatId, answer)
       break
-    case 'unsub':
+    }
+    case 'unsub': {
       answer = await unSubscribeUser(user)
       bot.sendMessage(user.chatId, answer)
       break
+    }
     default:
       bot.sendMessage(user.chatId, answer)
       tLogger.error({ msg: "unhandled query: ", query: req, chatId: user.chatId, username: user.username })

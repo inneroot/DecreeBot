@@ -21,7 +21,7 @@ const getSubscribers = async (): Promise<User[]> => {
     firebaseLogger.error('No users in base')
     return [];
   }
-  let result = []
+  const result = []
   users.forEach(doc => {
     result.push(doc.data())
   })
@@ -66,7 +66,7 @@ const unSubscribeUser = async (user: User): Promise<string> => {
 
 const addDecrees = async (decrees: Decree[]): Promise<string> => {
 
-  let arrOfArr: Array<Decree[]> = []
+  const arrOfArr: Array<Decree[]> = []
   for (let i = 0; i < decrees.length / MAX_BATCH_SIZE; i++) {
     if ((i + 1) * MAX_BATCH_SIZE < decrees.length) {
       arrOfArr.push(decrees.slice(i * MAX_BATCH_SIZE, (i + 1) * MAX_BATCH_SIZE))
@@ -110,7 +110,7 @@ async function commitBatch(decrees: Decree[]): Promise<void> {
 }
 export const query = db.collection('decrees').orderBy('date', 'desc').limit(50)
 
-const dbLatest = async (quantity: number = 50): Promise<Decree[]> => {
+const dbLatest = async (quantity = 50): Promise<Decree[]> => {
   if (dbLatestCache.length != 0) {
     firebaseLogger.trace(`Get ${dbLatestCache.length} decrees from cache`)
     return dbLatestCache
@@ -122,14 +122,14 @@ const updateCache = async () => {
   firebaseLogger.trace(`Updating cache`)
   return await getFromDB()
 }
-const getFromDB = async (quantity: number = 50) => {
+const getFromDB = async (quantity = 50) => {
   const snapshot = await db.collection('decrees').orderBy('date', 'desc').limit(quantity).get()
   firebaseLogger.trace(`Got snapshot with ${snapshot.size} docs form base`)
   if (snapshot.empty) {
     firebaseLogger.error('No Decrees in base')
     return [];
   }
-  let result = []
+  const result = []
   snapshot.forEach(doc => {
     const converted = converToDecrees(doc.data())
     result.push(converted)

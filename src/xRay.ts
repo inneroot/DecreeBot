@@ -13,7 +13,7 @@ const x = Xray({
 
 const requesturl = 'https://mepar.ru/documents/decrees/'
 
-const scrapDecrees = async (limit: number = 1): Promise<Decree[]> => {
+const scrapDecrees = async (limit = 1): Promise<Decree[]> => {
   xLogger.info(`Scrapping ${limit} pages`)
   let arr = []
   try {
@@ -67,8 +67,8 @@ const batchScraping = async (decrees: Decree[]): Promise<Decree[]> => {
   if (decrees.length < 100) {
     return await getDetails(decrees)
   }
-  let result = []
-  for (let decree of decrees) {
+  const result = []
+  for (const decree of decrees) {
     result.push(await getDecreeDetails(decree))
   }
   return result
@@ -79,7 +79,7 @@ const getDetails = async (decrees: Decree[]): Promise<Decree[]> => {
   return await Promise.all(newDecreesPromises)
 }
 
-const scrapLatest = async (pages: number = 1): Promise<Decree[]> => {
+const scrapLatest = async (pages = 1): Promise<Decree[]> => {
   return await scrapDecrees(pages)
 }
 
