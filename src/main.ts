@@ -4,7 +4,8 @@ import { SubscribeUser, unSubscribeUser, addDecrees, dbLatest, getSubscribers } 
 import { scrapDecrees, batchScraping, scrapLatest } from './xRay'
 import { compareDecrees, getUser, formatString } from './helpers'
 import { logger } from './logger'
-import { Decree } from '../types/Decree';
+import { Decree } from '../types/Decree'
+import { cron } from 'node-cron'
 const tLogger = logger.child({ module: 'telegram' })
 
 process.env.NTBA_FIX_319 = '1'
@@ -13,10 +14,7 @@ const token = require('../../config/botToken.json')
 const bot = new TelegramBot(token.BOT_TOKEN, { polling: true })
 
 tLogger.info('System start')
-
-const interval = 4 * 60 * 60 * 1000
-checkNew()
-setInterval(checkNew, interval)
+cron.schedule('* * 4 * *', checkNew);
 
 async function checkNew() {
   tLogger.info(`checkNew`)

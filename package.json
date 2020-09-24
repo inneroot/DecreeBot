@@ -35,6 +35,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "firebase-admin": "^9.1.1",
+    "node-cron": "^2.0.3",
     "node-forge": "^0.10.0",
     "node-telegram-bot-api": "^0.50.0",
     "pino": "^6.6.0",
