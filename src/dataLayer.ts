@@ -46,6 +46,22 @@ const SubscribeUser = async (user: User): Promise<string> => {
   return `@${user.username} successfully subscribed`
 }
 
+const unSubscribeUser = async (user: User): Promise<string> => {
+  const firebaseLogger = logger.child({ module: 'firebase', chatId: user.chatId, username: user.username })
+  const userRef = db.collection('users').doc(user.chatId.toString())
+  const doc = await userRef.get();
+  if (doc.exists) {
+    await userRef.delete().catch((e: Error) => {
+      firebaseLogger.error({ msg: `Error while subscribing user: ${e.message}` })
+      return '500 : Error while unsubscribing'
+    })
+    firebaseLogger.trace({ msg: `unSubscribed user` })
+    return `@${user.username} not subscribed`
+  }
+  firebaseLogger.trace({ msg: `Not subscribed` })
+  return `@${user.username} successfully unsubscribed`
+}
+
 
 const addDecrees = async (decrees: Decree[]): Promise<string> => {
 
@@ -118,4 +134,4 @@ function converToDecrees(docData: FirebaseFirestore.DocumentData) {
   }
 }
 
-export { SubscribeUser, addDecrees, dbLatest, getSubscribers }
+export { SubscribeUser, unSubscribeUser, addDecrees, dbLatest, getSubscribers }

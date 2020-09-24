@@ -1,9 +1,9 @@
 import { tMessage, tQuery } from "../types/Query"
 import { User } from "../types/User"
-import { SubscribeUser, addDecrees, dbLatest, getSubscribers } from './dataLayer'
-import { scrapDecrees, getDecreeDetails, batchScraping, scrapLatest, getDetails } from './xRay'
+import { SubscribeUser, unSubscribeUser, addDecrees, dbLatest, getSubscribers } from './dataLayer'
+import { scrapDecrees, batchScraping, scrapLatest } from './xRay'
+import { compareDecrees, getUser, formatString } from './helpers'
 import { logger } from './logger'
-import { nodeEmitter } from './event'
 import { Decree } from '../types/Decree';
 const tLogger = logger.child({ module: 'telegram' })
 
@@ -14,65 +14,44 @@ const bot = new TelegramBot(token.BOT_TOKEN, { polling: true })
 
 tLogger.info('System start')
 
+const interval = 4 * 60 * 60 * 1000
+checkNew()
+setInterval(checkNew, interval)
 
 async function checkNew() {
   tLogger.info(`checkNew`)
   const latestInDb = await dbLatest()
   const latestOnSite = await scrapLatest()
-  const difference = compareDecrees(latestInDb, latestOnSite)
-  await updateDB(difference)
-  distribution(difference)
+  const difference = await compareDecrees(latestInDb, latestOnSite)
+  if (difference.length > 0) {
+    await addDecrees(difference)
+    distribution(difference)
+  }
 }
-
-const updateDB = async (newDecrees: Decree[]) => addDecrees(await getDetails(newDecrees))
 
 const distribution = async (newDecrees: Decree[]) => {
   const users = await getSubscribers()
+  const msgArr = formatString(newDecrees)
   tLogger.info(`Sending ${newDecrees.length} new decrees to ${users.length} subscribers`)
   users.forEach(user => {
-    bot.sendMessage(user.chatId, formatString(newDecrees), { parse_mode: 'HTML' })
+    sendMessageArr(user.chatId, msgArr)
   })
 }
-
-const formatString = (newDecrees: Decree[]) => {
-  if (!Array.isArray(newDecrees)) {
-    return `error: \'ewDecrees\' should be Array`
-  }
-  let result = `Новых указов: ${newDecrees.length}\n`
-  if (newDecrees.length > 10) {
-    result += `Последние 10 указов\n`
-    newDecrees = newDecrees.slice(0, 10)
-  }
-  newDecrees.forEach((decree) => {
-    result += `<a href="${decree.url}">${decree.title}</a>\n`
-  })
-  return result
-}
-
-function compareDecrees(latestInDb: Decree[], latestOnSite: Decree[]) {
-  tLogger.trace(`Comparing ${latestInDb.length} from DB with ${latestOnSite.length} from page`)
-  const SetDB: Set<string> = new Set()
-  const NewDecrees: Decree[] = []
-  latestInDb.forEach((decree: Decree) => SetDB.add(decree.url))
-  latestOnSite.forEach((decree: Decree) => { if (!SetDB.has(decree.url)) NewDecrees.push(decree) })
-  tLogger.info(`Added ${NewDecrees.length} decrees`)
-  return NewDecrees
-}
-
-function getUser(msg: tMessage): User {
-  return {
-    chatId: msg.chat.id,
-    username: msg.chat.username,
-    name: msg.chat.first_name + ' ' + msg.chat.last_name
-  }
-}
-
-
 
 bot.onText(/\/subscribe/, async (msg: tMessage) => {
   const user = getUser(msg)
   const response = await SubscribeUser(user)
   bot.sendMessage(user.chatId, response)
+})
+
+bot.onText(/\/fetch/, async (msg: tMessage) => {
+  const user = getUser(msg)
+  tLogger.info(`Fetch command from @${user.username}`)
+  bot.sendMessage(user.chatId, 'Fetching...')
+  const decrees = await scrapDecrees()
+  const decreesFull = await batchScraping(decrees)
+  const answer = await addDecrees(decreesFull)
+  bot.sendMessage(user.chatId, answer)
 })
 
 bot.onText(/\/start/, (msg: tMessage) => {
@@ -83,14 +62,6 @@ bot.onText(/\/start/, (msg: tMessage) => {
       inline_keyboard: [
         [
           {
-            text: 'fetch',
-            callback_data: 'fetch'
-          },
-          {
-            text: 'db',
-            callback_data: 'db'
-          },
-          {
             text: 'latest',
             callback_data: 'latest'
           },
@@ -99,8 +70,8 @@ bot.onText(/\/start/, (msg: tMessage) => {
             callback_data: 'subscribe'
           },
           {
-            text: 'test',
-            callback_data: 'test'
+            text: 'unsub',
+            callback_data: 'unsub'
           },
         ]
       ]
@@ -122,30 +93,18 @@ bot.on("callback_query", (query: tQuery) => {
 async function processQuery(req: string, user: User) {
   let answer = 'error. function not working yet'
   switch (req) {
-    case 'fetch':
-      tLogger.info('fetch query')
-      bot.sendMessage(user.chatId, 'Fetching...')
-      const decrees = await scrapDecrees()
-      const decreesFull = await batchScraping(decrees)
-      answer = await addDecrees(decreesFull)
-      bot.sendMessage(user.chatId, answer)
-      break
-    case 'db':
-      bot.sendMessage(user.chatId, `In database links`)
-      break
     case 'latest':
-      checkNew()
-      //const latestInDb = await dbLatest(10)
-      //bot.sendMessage(user.chatId, latestInDb)
+      const latestInDb = await dbLatest(10)
+      const messageArr = formatString(latestInDb)
+      sendMessageArr(user.chatId, messageArr)
       break
     case 'subscribe':
       answer = await SubscribeUser(user)
       bot.sendMessage(user.chatId, answer)
       break
-    case 'test':
-      const decr = await getDecreeDetails({ url: 'https://mepar.ru/documents/decrees/2020/06/10/121738/', title: 'test' })
-      tLogger.debug(decr)
-      bot.sendMessage(user.chatId, `Updated ${JSON.stringify(decr)}`)
+    case 'unsub':
+      answer = await unSubscribeUser(user)
+      bot.sendMessage(user.chatId, answer)
       break
     default:
       bot.sendMessage(user.chatId, answer)
@@ -153,8 +112,8 @@ async function processQuery(req: string, user: User) {
   }
 }
 
-
-
-nodeEmitter.on('Added decrees', (data) => tLogger.debug(data))
-nodeEmitter.on('Modified decrees', (data) => tLogger.debug(data))
-nodeEmitter.on('Removed decrees', (data) => tLogger.debug(data))
+function sendMessageArr(chatId: number, messageArr: string[]) {
+  messageArr.forEach(msg => {
+    bot.sendMessage(chatId, msg, { parse_mode: 'HTML' })
+  })
+}

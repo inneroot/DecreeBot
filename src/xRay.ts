@@ -13,7 +13,6 @@ const x = Xray({
 
 const requesturl = 'https://mepar.ru/documents/decrees/'
 
-
 const scrapDecrees = async (limit: number = 1): Promise<Decree[]> => {
   xLogger.info(`Scrapping ${limit} pages`)
   let arr = []
@@ -35,11 +34,7 @@ const scrapDecrees = async (limit: number = 1): Promise<Decree[]> => {
   }
 }
 
-let counter = 0
-
 const getDecreeDetails = async (decree: Decree): Promise<Decree> => {
-  counter++
-  if (counter % 100 == 0) { xLogger.info({ getDecreeDetails: counter }) }
   return x(decree.url,
     {
       number: '.doc-detail-retro-outer .row .text-left',
@@ -67,8 +62,6 @@ function getDateFromLink(url) {
   const dateArr = url.split('/').slice(-5, -2)
   return new Date(dateArr[0], +dateArr[1] - 1, dateArr[2])
 }
-
-
 
 const batchScraping = async (decrees: Decree[]): Promise<Decree[]> => {
   if (decrees.length < 100) {
