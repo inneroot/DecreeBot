@@ -5,7 +5,7 @@ import { scrapDecrees, batchScraping, scrapLatest } from './xRay'
 import { compareDecrees, getUser, formatString } from './helpers'
 import { logger } from './logger'
 import { Decree } from '../types/Decree'
-import { cron } from 'node-cron'
+const cron = require('node-cron');
 const tLogger = logger.child({ module: 'telegram' })
 
 process.env.NTBA_FIX_319 = '1'
@@ -40,6 +40,13 @@ bot.onText(/\/subscribe/, async (msg: tMessage) => {
   const user = getUser(msg)
   const response = await SubscribeUser(user)
   bot.sendMessage(user.chatId, response)
+})
+
+
+bot.onText(/\/check/, async (msg: tMessage) => {
+  const user = getUser(msg)
+  bot.sendMessage(user.chatId, `Checking for new...`)
+  checkNew()
 })
 
 bot.onText(/\/fetch/, async (msg: tMessage) => {

@@ -5,6 +5,7 @@ import { logger } from './logger'
 const firebaseLogger = logger.child({ module: 'firebase' })
 const serviceAccount = require('../config/meparbot-firebase-adminsdk-59ogt-0888ba87f5.json')
 const MAX_BATCH_SIZE = 500
+let dbLatestCache: Decree[] = []
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -105,10 +106,23 @@ async function commitBatch(decrees: Decree[]): Promise<void> {
   } catch (e) {
     firebaseLogger.error(e.message)
   }
+  dbLatestCache = await updateCache()
 }
 export const query = db.collection('decrees').orderBy('date', 'desc').limit(50)
 
 const dbLatest = async (quantity: number = 50): Promise<Decree[]> => {
+  if (dbLatestCache.length != 0) {
+    firebaseLogger.trace(`Get ${dbLatestCache.length} decrees from cache`)
+    return dbLatestCache
+  }
+  return getFromDB(quantity)
+}
+
+const updateCache = async () => {
+  firebaseLogger.trace(`Updating cache`)
+  return await getFromDB()
+}
+const getFromDB = async (quantity: number = 50) => {
   const snapshot = await db.collection('decrees').orderBy('date', 'desc').limit(quantity).get()
   firebaseLogger.trace(`Got snapshot with ${snapshot.size} docs form base`)
   if (snapshot.empty) {
@@ -120,7 +134,8 @@ const dbLatest = async (quantity: number = 50): Promise<Decree[]> => {
     const converted = converToDecrees(doc.data())
     result.push(converted)
   })
-  firebaseLogger.trace(`Converted ${result.length} docs to decrees`)
+  dbLatestCache = result
+  firebaseLogger.trace(`Converted ${result.length} docs to decrees. Cache updated`)
   return result
 }
 
