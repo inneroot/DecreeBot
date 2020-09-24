@@ -14,7 +14,7 @@ const token = require('../../config/botToken.json')
 const bot = new TelegramBot(token.BOT_TOKEN, { polling: true })
 
 tLogger.info('System start')
-cron.schedule('* * 4 * *', checkNew);
+cron.schedule('* * 4,12,16,20 * *', checkNew);
 
 async function checkNew() {
   tLogger.info(`checkNew`)
