@@ -58,8 +58,9 @@ const getDecreeDetails = async (decree: Decree): Promise<Decree> => {
     .catch(e => xLogger.error({ msg: e.message, decree: decree.url }))
 }
 
-function getDateFromLink(url) {
-  const dateArr = url.split('/').slice(-5, -2)
+function getDateFromLink(url: String) {
+  const dateArr = url.split('/').slice(-5, -2).map(el => parseInt(el))
+  if (dateArr.includes(NaN)) return new Date
   return new Date(dateArr[0], +dateArr[1] - 1, dateArr[2])
 }
 
