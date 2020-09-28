@@ -60,8 +60,14 @@ const getDecreeDetails = async (decree: Decree): Promise<Decree> => {
 
 function getDateFromLink(url: String): Date {
   const dateArr = url.split('/').slice(-5, -2).map(el => parseInt(el))
-  if (dateArr.includes(NaN)) return new Date()
-  return new Date(dateArr[0], +dateArr[1] - 1, dateArr[2])
+  if (dateArr.includes(NaN)) {
+    let currentDate = new Date();
+    let date = currentDate.getDate();
+    let month = currentDate.getMonth();
+    let year = currentDate.getFullYear();
+    return new Date(year, month, date)
+  }
+  return new Date(dateArr[0], dateArr[1] - 1, dateArr[2])
 }
 
 const batchScraping = async (decrees: Decree[]): Promise<Decree[]> => {
